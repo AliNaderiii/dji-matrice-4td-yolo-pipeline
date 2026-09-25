@@ -1,0 +1,53 @@
+# YOLOv8n Training for REAL Hard-Hat Workers Dataset (3 classes)
+# Author: Ali Naderi | Production config for GTX 1650 4GB
+# Dataset: Hard Hat Workers v10 raw_AllClasses yolov8
+# Classes: 0: Person, 1: Hard-Hat, 2: No-Hard-Hat
+# Fix for NaN: SGD lr0 0.001 amp False
+# Fix for OOM: batch 4 workers 0 for GTX 1650 4GB
+
+model: yolov8n.pt
+imgsz: 640
+batch: 4            # FIXED: 4 for GTX 1650 4GB (was 8 -> OOM at epoch 4)
+epochs: 50
+device: 0
+workers: 0          # FIXED: 0 for low RAM (was 2)
+
+optimizer: SGD
+lr0: 0.001
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3
+
+amp: false          # CRITICAL: False for NaN fix
+cache: false
+close_mosaic: 10
+
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0
+translate: 0.1
+scale: 0.5
+shear: 0.0
+perspective: 0.0005
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.0
+
+val: true
+plots: true
+save: true
+save_period: 5
+patience: 15
+
+project: runs/dji
+name: yolov8n_real_fixed
+exist_ok: false
+
+export:
+  format: onnx
+  opset: 12
+  dynamic: false
+  simplify: true

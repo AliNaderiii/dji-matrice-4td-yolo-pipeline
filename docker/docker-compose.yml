@@ -1,0 +1,52 @@
+services:
+  emqx:
+    image: emqx:5.0.20
+    container_name: dji_emqx
+    ports:
+      - "1883:1883"    # MQTT
+      - "8083:8083"    # WS
+      - "8084:8084"    # WSS
+      - "8883:8883"    # MQTTS
+      - "18083:18083"  # Dashboard
+    environment:
+      - EMQX_DASHBOARD__DEFAULT_USERNAME=admin
+      - EMQX_DASHBOARD__DEFAULT_PASSWORD=public
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+    networks:
+      - dji_net
+
+  # Optional: App container for pipeline
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: dji_app
+    depends_on:
+      - emqx
+    volumes:
+      - ../datasets:/app/datasets
+      - ../runs:/app/runs
+      - ../dji_submission:/app/dji_submission
+      - ../demo:/app/demo
+    environment:
+      - PYTHONPATH=/app
+      - MQTT_BROKER=emqx
+    networks:
+      - dji_net
+    command: tail -f /dev/null  # Keep running for exec
+
+volumes:
+  emqx_data:
+  emqx_log:
+
+networks:
+  dji_net:
+    driver: bridge
+
+# Usage:
+# docker compose -f docker/docker-compose.yml up -d
+# Access EMQX Dashboard: http://localhost:18083 (admin/public)
+# Test MQTT: python scripts/run_mqtt_test.py --mode subscriber --timeout 30
+#            python scripts/run_mqtt_test.py --mode mock --frames 20 --fps 3

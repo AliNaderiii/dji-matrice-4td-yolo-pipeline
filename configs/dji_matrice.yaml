@@ -1,0 +1,47 @@
+# DJI Matrice 4TD - Custom YOLO Dataset Configuration
+# Author: Ali Naderi | Edge AI Pipeline
+# Classes: Person, Vehicle, Hard-Hat, No-Hard-Hat
+# Compatible with Ultralytics YOLOv8 / YOLO11
+
+# Dataset root - will be created by downloader
+path: ./datasets/dji-hardhat  # dataset root dir
+
+# Train/val/test splits - relative to path
+train: images/train  # train images
+val: images/val      # val images
+test: images/test    # test images (optional)
+
+# Number of classes
+nc: 4
+
+# Class names - ORDER MATTERS for DJI deployment
+# Must match classes.txt that will be uploaded to DJI portal
+names:
+  0: Person
+  1: Vehicle
+  2: Hard-Hat
+  3: No-Hard-Hat
+
+# DJI Matrice 4TD specific notes:
+# - Input resolution: 640x640 is standard for DJI NPU
+# - Calibration set: 150 images will be exported separately for INT8 quantization
+# - Dataset should include drone perspective (top-down, oblique)
+# - Recommended minimum: 1000 images per class for production
+
+# Download configuration
+download:
+  # Roboflow Hard Hat Workers dataset
+  roboflow:
+    workspace: "roboflow-universe"
+    project: "hard-hat-workers"
+    version: 3
+    # If you have API key, set via env var ROBOFLOW_API_KEY
+    # Otherwise downloader will use public download with limit
+
+  # COCO for Person & Vehicle
+  coco:
+    # Person: class 0 in COCO
+    # Vehicle: car (2), truck (7), bus (5) mapped to Vehicle
+    use_coco: true
+    coco_person_limit: 3000
+    coco_vehicle_limit: 2000

@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Training artifacts
+runs/
+datasets/
+dji_submission/
+*.pt
+*.onnx
+*.engine
+*.dji
+wandb/
+*.log
+*.jsonl
+
+# Calibration images - large
+calibration_images/
+calib/
+
+# AWS certs - never commit
+*.pem
+*.key
+*.crt
+certs/
+aws_certs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Docker
+.docker/
+
+# Logs
+logs/
+inference_logs/

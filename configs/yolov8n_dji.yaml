@@ -1,0 +1,63 @@
+# YOLOv8n Training Hyperparameters - Optimized for DJI Matrice 4TD NPU
+# Author: Ali Naderi | Edge AI
+# Base: yolov8n.pt (3.2M params) - only viable for Matrice 4TD limited TOPS
+# FIXED FOR GTX 1650 4GB STABILITY - 2024-09-24
+# Issue: AdamW + lr0 0.01 + AMP True caused NaN loss on real dataset
+# Fix: SGD + lr0 0.001 + AMP False
+
+# Model
+model: yolov8n.pt  # pretrained nano
+imgsz: 640         # DJI standard input
+batch: 8           # Reduced for 4GB VRAM (was 16)
+epochs: 100
+device: 0          # 0 for GPU, cpu for CPU
+workers: 2         # Reduced for 4GB VRAM (was 4)
+
+# Optimizer - SGD stable for real data, AdamW caused NaN on GTX 1650
+optimizer: SGD
+lr0: 0.001         # Reduced from 0.01 - critical for NaN fix
+lrf: 0.01          # final learning rate = lr0 * lrf
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+
+# Stability - CRITICAL for GTX 1650 4GB + real data
+amp: false         # Disable AMP - main NaN fix (was true by default)
+cache: false       # Disable cache for low VRAM
+close_mosaic: 10   # Disable mosaic last 10 epochs for stability
+
+# Augmentation - tuned for drone top-down perspective
+# Less rotation, more perspective and scale
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0       # No rotation for drone (keep horizon)
+translate: 0.1
+scale: 0.5         # Important for varying drone altitude
+shear: 0.0
+perspective: 0.0005  # Small perspective for oblique drone view
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.0         # Disable for small objects like hard-hat
+
+# Validation & Saving
+val: true
+plots: true
+save: true
+save_period: 10
+patience: 20       # Early stopping
+
+# Project
+project: runs/dji
+name: yolov8n_4class
+exist_ok: false
+
+# Export - DJI compatible
+export:
+  format: onnx
+  opset: 12        # DJI recommended 11-14
+  dynamic: false   # Static shape for NPU
+  simplify: true
