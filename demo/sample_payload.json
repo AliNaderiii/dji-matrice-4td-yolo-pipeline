@@ -1,0 +1,47 @@
+{
+  "timestamp": 1710000000000,
+  "drone_sn": "4TD-1581F6Q8D245P00EKS87",
+  "frame_id": 12345,
+  "detections": [
+    {
+      "class_id": 0,
+      "class_name": "Person",
+      "confidence": 0.92,
+      "bbox": [120.5, 200.3, 180.2, 350.7],
+      "track_id": "person_001"
+    },
+    {
+      "class_id": 2,
+      "class_name": "Hard-Hat",
+      "confidence": 0.89,
+      "bbox": [125.0, 200.3, 175.0, 230.5],
+      "track_id": "hardhat_001"
+    },
+    {
+      "class_id": 0,
+      "class_name": "Person",
+      "confidence": 0.87,
+      "bbox": [300.1, 180.5, 360.8, 340.2],
+      "track_id": "person_002"
+    },
+    {
+      "class_id": 3,
+      "class_name": "No-Hard-Hat",
+      "confidence": 0.85,
+      "bbox": [305.0, 180.5, 355.0, 210.8],
+      "track_id": "nohardhat_002"
+    },
+    {
+      "class_id": 1,
+      "class_name": "Vehicle",
+      "confidence": 0.91,
+      "bbox": [400.0, 300.0, 600.0, 400.0],
+      "track_id": "vehicle_001"
+    }
+  ],
+  "inference_time_ms": 42.5,
+  "model_version": "yolov8n_dji_4class_v1_INT8",
+  "bid": "b4cfaae6-bd9d-4cd0-8472-63b608c3c581",
+  "tid": "tid-1710000000000",
+  "method": "ai_inference_result"
+}

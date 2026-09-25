@@ -1,0 +1,8 @@
+# Colab-specific requirements - includes everything + colab extras
+# Usage in Colab: !pip install -q -r requirements-colab.txt
+
+-r requirements.txt
+
+# Colab extras
+ipywidgets>=8.0.0
+jupyter>=1.0.0
