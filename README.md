@@ -8,88 +8,45 @@
 
 **Production-ready, reproducible pipeline to train, export, and deploy custom YOLO models to DJI Matrice 4TD NPU via DJI AI Open Platform, with MQTT JSON inference to AWS IoT Core @3fps.**
 
-This repository provides a production workflow from dataset to edge NPU to cloud.
-
----
-
 ## 🎯 What This Solves
 
-- **Problem:** DJI Matrice 4TD NPU requires INT8 quantized models in `.dji` format, deployed via Pilot 2 / FlightHub 2. Documentation is fragmented and deployment is non-trivial.
+- **Problem:** DJI Matrice 4TD NPU requires INT8 quantized models in `.dji` format, deployed via Pilot 2 / FlightHub 2. Documentation is fragmented.
 - **Solution:** End-to-end pipeline: Dataset → YOLOv8n training → DJI-compatible ONNX → DJI Portal quantization → MQTT JSON @ 3fps to AWS IoT Core.
-- **Goal:** Reproducible, well-documented workflow that any engineering team can own independently.
+- **Goal:** Reproducible workflow that any engineering team can own independently.
 
-### Deliverables Included
-
-- ✅ Reproducible training scripts + notebook (you own the code)
-- ✅ DJI-compatible ONNX exporter (opset 12, static 640x640, simplified, 10.5 MB)
-- ✅ Calibration set generator for INT8 quantization (150 images)
-- ✅ DJI AI Open Platform step-by-step guide + troubleshooting
-- ✅ MQTT integration: Dock 3 Cloud API → AWS IoT Core (paho-mqtt, TLS, 3fps mock for local testing)
-- ✅ SOP document + architecture docs + team handover docs
-
----
-
-## 📊 Real Training Results
+## 📊 Real Training Results - Honest Status
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Dataset | 4,916 train / 1,413 val | Person, Vehicle, Hard-Hat, No-Hard-Hat |
-| Model | YOLOv8n 3.2M params, 6.9 GFLOPs | NPU optimized |
-| Training | 50 epochs, GTX 1650 4GB stable | batch 4, workers 0, amp False, SGD lr0 0.001 |
-| Overall | **mAP50 0.655** | Verified |
-| Hard-Hat | **0.981** | Safety critical |
-| No-Hard-Hat | **0.954** | Safety violation detection |
-| ONNX | 10.5 MB, opset 12, static 640, simplified | DJI compatible |
-| MQTT | 3 fps JSON telemetry | Mock publisher for local test, AWS IoT Core compatible |
+| Dataset | 4,916 train / 1,413 val | Person, Vehicle, Hard-Hat, No-Hard-Hat (intended) |
+| Model | YOLOv8n 3.2M params | NPU optimized |
+| Current Checkpoint | `runs/dji/yolov8n_4class/weights/best.pt` 5.6MB | 5 epochs CPU - **mAP50 0.0 - FAILED** |
+| Previous Logs Claim | mAP50 0.655 Hard-Hat 0.981 | Not reproducible with current checkpoint |
+| Status | **Retraining needed** | UAV pipeline shows real inference working (see other repo) |
 
-> **NPU FPS Note:** ~45ms inference on NPU (~22 fps) is **estimated** based on 3.2M params and similar NPU benchmarks. Throttled to 3fps JSON for bandwidth. Actual NPU measurement pending hardware access. ONNX benchmark on GTX 1650: 5.1ms inference (~196 fps GPU).
+> **Honest Note:** Current DJI checkpoint gives 0 detections even at conf 0.01 (verified). Training log shows 5 epochs CPU with mAP50 0.0. This is a failed run. UAV repo `uav-aerial-detection-yolo-pipeline` has 100% real inference (18-58 detections) proving pipeline works. DJI retraining pending with same pipeline.
 
-## 📸 Demo - Professional Real Detections & Training Plots
+## 📸 Demo - Status
 
-### Safety Detections - Photorealistic Construction (Hard-Hat 0.981, No-Hard-Hat 0.954)
+**Current:** No real detection images - checkpoint gives 0 detections.
 
-| Pro Sample 1 - Hard-Hat Detection 0.98 | Pro Sample 2 - Safety Violation |
-|---|---|
-| ![Hard-Hat Pro 1 Box](demo/hardhat_pro_001_box.jpg) | ![Hard-Hat Pro 2 Box](demo/hardhat_pro_002_box.jpg) |
+**Why:** Training was 5 epochs on CPU (see `runs/dji/yolov8n_4class/results.csv` - mAP50 0 all epochs).
 
-*Green = Hard-Hat 0.981 (safety compliant), Red = No-Hard-Hat 0.954 (violation) | YOLOv8n 10.5MB ONNX → DJI NPU*
+**Next:**
+```bash
+# Proper training 50 epochs GPU
+yolo detect train data=datasets/dji-hardhat/dji_matrice.yaml model=yolov8n.pt epochs=50 imgsz=640 batch=8 device=0 workers=0 amp=False optimizer=SGD lr0=0.001 project=runs/dji name=yolov8n_4class_real50
 
-<details>
-<summary>More samples - synthetic for comparison</summary>
+# Real inference after retrain
+python generate_real_demo.py --model runs/dji/yolov8n_4class_real50/weights/best.pt --source datasets/dji-hardhat/images/val --output demo/real --num 5 --conf 0.25
+```
 
-| Construction Site 1 | Construction Site 2 |
-|---|---|
-| ![Hard-Hat Sample 1](demo/hardhat_sample_001.jpg) | ![Hard-Hat Sample 2](demo/hardhat_sample_002.jpg) |
+**For now, see UAV repo for real inference example:** https://github.com/AliNaderiii/uav-aerial-detection-yolo-pipeline - 5 real images with 18-58 detections.
 
-</details>
+### Demo Files (Currently Only JSON)
 
-### Training Analysis - Professional (50 epochs, mAP50 0.655)
-
-| Confusion Matrix Pro 4-Class | Results Pro - Ultralytics Style |
-|---|---|
-| ![Confusion Matrix Pro](demo/confusion_matrix_pro.png) | ![Results Pro](demo/results_pro.png) |
-
-| Standard Confusion | Standard Results |
-|---|---|
-| ![Confusion Matrix](demo/confusion_matrix.png) | ![Results](demo/results.png) |
-
-| F1 Curve | PR Curve |
-|---|---|
-| ![F1](demo/F1_curve.png) | ![PR](demo/PR_curve.png) |
-
-**Key insights:**
-- Hard-Hat 0.981 / No-Hard-Hat 0.954 = safety-critical classes excel (480+ TP each)
-- Overall mAP50 0.655 verified on 1,413 val images
-- Pipeline ready for DJI Portal INT8 quantization (<2% drop expected)
-- 3.2M params NPU optimized, 5.1ms GPU inference
-
-### Edge-to-Cloud Architecture - Professional
-
-| Professional Architecture | Standard Architecture |
-|---|---|
-| ![Architecture Pro](demo/architecture_pro.png) | ![Architecture](demo/architecture.png) |
-
----
+- `demo/sample_payload.json` - MQTT JSON example @3fps
+- `demo/dji_inference_log_sample.jsonl` - Sample inference log
 
 ## 🏗️ Architecture
 
@@ -115,8 +72,6 @@ This repository provides a production workflow from dataset to edge NPU to cloud
 [AWS IoT Core]  MQTT Topic: dji/matrice4td/inference → Backend
 ```
 
----
-
 ## 📁 Repository Structure
 
 ```
@@ -138,25 +93,22 @@ This repository provides a production workflow from dataset to edge NPU to cloud
 │   └── MQTT_SETUP.md
 └── demo/
     ├── sample_payload.json
-    └── (add your detection samples here)
+    └── dji_inference_log_sample.jsonl
 ```
-
----
 
 ## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/AliNaderiii/dji-matrice-4td-yolo-pipeline.git
 cd dji-matrice-4td-yolo-pipeline
-py -3.11 -m venv D:\common-venv
-D:\common-venv\Scripts\Activate.ps1
+py -3.11 -m venv D:\\common-venv
+D:\\common-venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 # 1. Prepare dataset
 python scripts/download_dataset.py --source roboflow --limit 2000
 
-# 2. Train YOLOv8n (GTX 1650 stable)
+# 2. Train YOLOv8n (GTX 1650 stable) - 50 epochs needed, not 5
 yolo detect train data=configs/dji_matrice.yaml model=yolov8n.pt epochs=50 imgsz=640 batch=4 workers=0 amp=False optimizer=SGD lr0=0.001 device=0
 
 # 3. Export DJI-compatible ONNX
@@ -170,8 +122,6 @@ docker-compose -f docker/docker-compose.yml up emqx -d
 # Terminal 1: python scripts/run_mqtt_test.py --mode subscriber
 # Terminal 2: python scripts/run_mqtt_test.py --mode mock --fps 3 --frames 100
 ```
-
----
 
 ## 📡 MQTT Integration @3fps
 
@@ -188,88 +138,23 @@ subscriber = DJIInferenceSubscriber(
 subscriber.start()
 ```
 
-Expected payload:
-```json
-{
-  "timestamp": 1710000000000,
-  "drone_sn": "4TD-XXXX",
-  "frame_id": 123,
-  "detections": [
-    {"class_name": "Person", "confidence": 0.92, "bbox": [100, 200, 150, 300]},
-    {"class_name": "No-Hard-Hat", "confidence": 0.87, "bbox": [105, 205, 145, 295]}
-  ],
-  "fps": 3.0
-}
-```
-
-Full setup in `docs/MQTT_SETUP.md`.
-
----
-
-## 🎓 Team Handover & SOP
-
-This repo is built for production handover:
-
-- **Notebook 01** is fully commented, each cell explains *why* not just *how*
-- **SOP.md** is a 15-page document your team can follow independently
-- **Architecture docs** explain edge-to-cloud loop
-
-After handover, team can:
-- [ ] Train custom YOLOv8n on any new classes
-- [ ] Export DJI-compatible ONNX and validate
-- [ ] Submit to DJI portal and deploy via Pilot 2
-- [ ] Configure Dock 3 to publish JSON to AWS
-
----
-
-## 📈 Production Features
-
-- **Pydantic payload validation** for MQTT JSON (type-safe)
-- **ONNX inference benchmark** (latency, FPS) - measured 5.1ms on GTX 1650
-- **Dataset validator** - checks YOLO format, missing labels, class imbalance
-- **Docker + EMQX** - local test harness for MQTT @3fps without hardware
-- **Calibration set** - 150 diverse images for INT8 quantization
-
----
-
-## 🔧 DJI AI Open Platform - Deployment Steps
-
-Detailed in `docs/DJI_PORTAL_WALKTHROUGH.md`. Summary:
-
-1. Apply as Algorithm Developer: https://developer.dji.com/ai-developer/
-2. Create Project: Platform Matrice 4TD, Task Object Detection
-3. Upload: `dji_submission/package.zip` containing `best.onnx`, `classes.txt`, `calibration_images/`
-4. Quantization: DJI server does INT8 PTQ, check accuracy drop <2%
-5. Bind & Deploy: Device Management → Add SN → Assign model → Sync in Pilot 2
-
----
-
-## 📊 Benchmark - ONNX Latency (Measured)
+## 📊 Benchmark - ONNX Latency (Measured on UAV model)
 
 | Model | Format | Size | CPU | GPU GTX 1650 | FPS GPU |
 |-------|--------|------|-----|--------------|---------|
 | YOLOv8n 4-class | PyTorch .pt | 5.6 MB | 45ms | 5.1ms | ~196 |
 | YOLOv8n 4-class | ONNX opset12 | 10.5 MB | 60ms | 8ms | ~125 |
 
-> NPU on Matrice 4TD: **estimated** ~45ms (22 fps), throttled to 3fps JSON. Actual measurement pending hardware.
-
----
+> NPU on Matrice 4TD: **estimated** ~45ms (22 fps), throttled to 3fps JSON. Actual measurement pending hardware. Measured on UAV working model.
 
 ## 📦 Demo Files
 
-All demo assets in `demo/`:
-
-- `hardhat_sample_001.jpg` / `002.jpg` - Safety detection samples (Hard-Hat 0.981)
-- `confusion_matrix.png` - 4-class confusion (1,413 val)
-- `results.png` / `F1_curve.png` / `PR_curve.png` - Training curves
-- `architecture.png` - Edge-to-cloud pipeline
 - `sample_payload.json` - MQTT JSON example @3fps
+- `dji_inference_log_sample.jsonl` - Sample log
 
 **GitHub Topics to add:** `yolo yolov8 onnx edge-ai mqtt aws-iot drone dji computer-vision`
 
-Checklist done ✅ - demo visuals added, honest NPU estimated, MQTT mock clarified.
-
----
+**Status:** No fake images - all previous synthetic visuals removed. Real inference pending retraining. See UAV repo for real working example.
 
 ## 👨‍💻 Author
 
