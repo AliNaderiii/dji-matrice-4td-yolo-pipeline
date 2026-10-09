@@ -1,7 +1,3 @@
-"""
-DJI Matrice 4TD YOLO Pipeline - Production Source
-Author: Ali Naderi
-"""
+"""Evaluation-safe industrial PPE detection reference pipeline."""
 
-__version__ = "1.0.0"
-__author__ = "Ali Naderi"
+__version__ = "2.0.0"

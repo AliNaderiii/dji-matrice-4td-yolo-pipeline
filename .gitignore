@@ -1,53 +1,46 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
-.Python
-env/
-venv/
 .venv/
-*.egg-info/
-dist/
-build/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
 
-# Training artifacts
-runs/
+# Locally supplied PPE detection data
+# Dataset terms remain with the source; never add images, labels, archives, or credentials to Git.
+data/
 datasets/
-dji_submission/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Locally generated training, model, and report artifacts
+.runtime/
+runs/
 *.pt
 *.onnx
 *.engine
-*.dji
-wandb/
-*.log
-*.jsonl
+checkpoints/*.pt
+checkpoints/*.onnx
+checkpoints/*.engine
+checkpoints/*.json
+!checkpoints/.gitkeep
+reports/*
+!reports/.gitkeep
 
-# Calibration images - large
-calibration_images/
-calib/
-
-# AWS certs - never commit
+# Credentials and deployment material
+.env
+certs/
 *.pem
 *.key
 *.crt
-certs/
-aws_certs/
 
-# IDE
+# OS / editor
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
-*.swp
-*.swo
-.DS_Store
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# Docker
-.docker/
-
-# Logs
-logs/
-inference_logs/
