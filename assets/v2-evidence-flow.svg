@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="title desc">
+  <title id="title">Evidence-safe PPE detection workflow</title>
+  <desc id="desc">Local versioned inputs flow through validation, training, a held-out test evaluation, and derived reporting. The test split is only consumed at final evaluation.</desc>
+  <style>
+    .bg{fill:#0b1120}.card{fill:#14213d;stroke:#3b82f6;stroke-width:2}.accent{fill:#164e63;stroke:#22d3ee;stroke-width:2}.guard{fill:#3f1d2e;stroke:#fb7185;stroke-width:2}.t{font-family:Arial,sans-serif;fill:#f8fafc;text-anchor:middle}.h{font-size:22px;font-weight:700}.s{font-size:15px;fill:#cbd5e1}.a{stroke:#94a3b8;stroke-width:3;fill:none;marker-end:url(#arrow)}
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#94a3b8"/></marker></defs>
+  <rect class="bg" width="1200" height="440" rx="20"/>
+  <text class="t h" x="600" y="48">Evidence-safe local PPE detection protocol</text>
+  <rect class="card" x="45" y="120" width="200" height="140" rx="14"/><text class="t h" x="145" y="164">Local data</text><text class="t s" x="145" y="194">YOLO labels</text><text class="t s" x="145" y="218">train / val / test</text>
+  <rect class="accent" x="315" y="120" width="200" height="140" rx="14"/><text class="t h" x="415" y="164">Validate</text><text class="t s" x="415" y="194">schema + labels</text><text class="t s" x="415" y="218">manifest + overlap gate</text>
+  <rect class="card" x="585" y="120" width="200" height="140" rx="14"/><text class="t h" x="685" y="164">Train + val</text><text class="t s" x="685" y="194">record config,</text><text class="t s" x="685" y="218">history, checkpoint hash</text>
+  <rect class="guard" x="855" y="120" width="200" height="140" rx="14"/><text class="t h" x="955" y="164">Final test</text><text class="t s" x="955" y="194">only evaluate.py</text><text class="t s" x="955" y="218">after checkpoint choice</text>
+  <path class="a" d="M245 190H315"/><path class="a" d="M515 190H585"/><path class="a" d="M785 190H855"/>
+  <rect class="accent" x="855" y="315" width="200" height="76" rx="14"/><text class="t h" x="955" y="347">Derived report</text><text class="t s" x="955" y="372">dashboard from JSON</text><path class="a" d="M955 260V315"/>
+  <text class="t s" x="600" y="412">No metrics or deployment claims are shown until the corresponding run artifacts are recorded.</text>
+</svg>

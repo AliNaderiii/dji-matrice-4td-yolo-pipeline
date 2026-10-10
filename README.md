@@ -1,280 +1,153 @@
-# Industrial PPE Safety Monitoring - Hard-Hat Detection with YOLOv8n
+# Evidence-safe PPE detection baseline
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![YOLOv8](https://img.shields.io/badge/YOLO-v8%20%7C%20v11-green)](https://docs.ultralytics.com/)
-[![ONNX](https://img.shields.io/badge/ONNX-Compatible-005CED)](https://onnx.ai/)
-[![MQTT](https://img.shields.io/badge/MQTT-3fps%20JSON-orange)](https://mqtt.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/AliNaderiii/dji-matrice-4td-yolo-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/AliNaderiii/dji-matrice-4td-yolo-pipeline/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Production-grade real-time PPE safety monitoring pipeline for industrial sites (factories, mines, construction) - YOLOv8n hard-hat detection with ONNX 10.5MB edge deployment and MQTT JSON @3fps to cloud.**
+A small, local-data reference pipeline for **three-class PPE object detection** with Ultralytics YOLO. Its purpose is to make a baseline experiment inspectable: validate data before a run, keep the test split held out, and link a reported score to the configuration, split manifest, selected weights, and recorded metrics.
 
-**Real training:** 50 epochs, mAP50 0.65553, Hard-Hat safety monitoring for industrial surveillance cameras.
+**Protocol release:** `v2.0.0` ([VERSION](VERSION)).
 
----
+> **Current evidence status:** no dataset, checkpoint, training run, held-out test metric, DJI integration, edge benchmark, ONNX export, cloud integration, or deployment result is included or claimed by this revision. Add claims only after recording the matching experiment artifacts.
 
-## 🎯 What This Solves - Industrial Safety
+![Evidence-safe workflow](assets/v2-evidence-flow.svg)
 
-- **Problem:** Industrial sites (factories, mines, construction, warehouses) need real-time PPE compliance monitoring - hard-hat detection from surveillance cameras. Manual monitoring is slow and misses violations.
-- **Solution:** End-to-end pipeline: Safety dataset (Person, Hard-Hat, No-Hard-Hat) → YOLOv8n training → ONNX edge deployment (10.5MB) → MQTT JSON @3fps → AWS IoT Core / Cloud Dashboard → Real-time safety alerts.
-- **Goal:** Reproducible, honest, production-ready workflow for industrial safety teams - deploy to edge devices (Jetson, NPU, surveillance NVR) and stream JSON to cloud.
+## Why this revision exists
 
-**Use Cases:**
-- Construction sites - hard-hat compliance
-- Mines - safety helmet monitoring
-- Factories - PPE enforcement
-- Warehouses - safety zone monitoring
-- Industrial surveillance - real-time violation alerts
+The earlier repository revision mixed incompatible class schemas and presented historical training/demo visuals alongside hardware, latency, and integration assertions whose supporting raw data, weights, and execution records are not versioned here. Those visuals are preserved in [`assets/legacy-v1/`](assets/legacy-v1/README.md) for provenance, but they are **not v2 evidence** and must not be reused as current benchmark or deployment results.
 
----
+This revision deliberately narrows scope to an auditable training/evaluation baseline. It does not imply fitness for safety-critical monitoring. A detector alone cannot establish PPE compliance, alerting policy, human oversight, privacy practice, or operational safety.
 
-## 📊 Real Training Results - Verified 50 Epochs (100% Real)
+## Contract and protocol
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Dataset | Industrial Safety 3-class | Person, Hard-Hat, No-Hard-Hat |
-| Classes | 3 - Person (0), Hard-Hat (1), No-Hard-Hat (2) | Safety critical |
-| Model | YOLOv8n 3.2M params, 6.9 GFLOPs | Edge optimized, 5.34MB .pt |
-| Checkpoint | `runs/dji/yolov8n_real_fixed/weights/best.pt` 5.34MB | 50 epochs, verified |
-| Overall | **mAP50 0.65553** mAP50-95 0.44325 | Precision 0.62775 Recall 0.61983 |
-| Training Log | Epoch 46: 0.65468, 47: 0.65556, 48: 0.65523, 49: 0.65545, **50: 0.65553 Best** | From `results.csv` real |
-| ONNX | 10.5 MB opset 12 static 640 simplified | Edge NPU compatible (Jetson, surveillance NVR, drone NPU) |
-| MQTT | 3 fps JSON telemetry | EMQX local + AWS IoT Core compatible |
+The sole authority is [`config.yaml`](config.yaml).
 
-**Training Log Real (from `runs/dji/yolov8n_real_fixed/results.csv`):**
-```
-epoch 46: mAP50 0.65468 Precision 0.62866 Recall 0.61675
-epoch 47: mAP50 0.65556
-epoch 48: mAP50 0.65523
-epoch 49: mAP50 0.65545
-epoch 50: mAP50 0.65553  <- Best (verified)
+| Class ID | Class |
+|---:|---|
+| 0 | `person` |
+| 1 | `hard_hat` |
+| 2 | `no_hard_hat` |
+
+Use one local YOLO-format dataset layout:
+
+```text
+data/
+├── images/
+│   ├── train/     # fitting split
+│   ├── val/       # development validation / checkpoint selection
+│   └── test/      # held out until final evaluation
+└── labels/
+    ├── train/
+    ├── val/
+    └── test/
 ```
 
----
+- Images may use `.jpg`, `.jpeg`, `.png`, `.bmp`, `.tif`, `.tiff`, or `.webp`.
+- A label file has one normalized YOLO row per object: `class_id x_center y_center width height`.
+- An image without a `.txt` label is allowed and counted as a negative image.
+- Orphan labels, duplicate stems, malformed labels, class IDs outside `0..2`, and sample-ID overlap across splits are rejected.
+- `src.train` uses only train and validation. `src.evaluate` is the **only** command that passes `split="test"` to Ultralytics.
 
-## 📸 Demo - 100% REAL Inference from YOLO Training (No Fake)
+Read the full [evaluation protocol](docs/PROTOCOL.md) before creating results.
 
-These are **real YOLO outputs** from training - `val_batch0_pred.jpg` generated by Ultralytics during training, not synthetic AI.
+## Windows quick start
 
-### Real Safety Detections - Hard-Hat Monitoring (best.pt 5.34MB, 50 epochs, mAP50 0.655)
+The commands below are PowerShell commands. Supply only data you are permitted to use; images, labels, weights, reports, and credentials are ignored by Git.
 
-| Real Safety 01 - val_batch0_pred.jpg | Real Safety 02 - val_batch1_pred.jpg |
-|---|---|
-| ![Real Safety 01](demo/real_safety_01.jpg) | ![Real Safety 02](demo/real_safety_02.jpg) |
+### 1. Create an environment
 
-| Real Safety 03 - val_batch2_pred.jpg |
-|---|
-| ![Real Safety 03](demo/real_safety_03.jpg) |
-
-**Key insights:**
-- Hard-Hat and No-Hard-Hat detected in real industrial scenes
-- Person class also detected for safety zone monitoring
-- Images are direct YOLO val predictions (not AI generated)
-- No fake boxes - all from real model inference 50 epochs
-
-### Real Training Plots from `runs/dji/yolov8n_real_fixed/` (YOLO Generated)
-
-| Confusion Matrix Real | Results Real 50ep |
-|---|---|
-| ![Confusion Real](demo/confusion_matrix_real.png) | ![Results Real](demo/results_real.png) |
-
-| F1 Curve Real | PR Curve Real |
-|---|---|
-| ![F1 Real](demo/F1_curve_real.png) | ![PR Real](demo/PR_curve_real.png) |
-
----
-
-## 🏗️ Architecture - Edge to Cloud for Industrial Safety
-
-```
-[Industrial Cameras: Construction, Factory, Mine Surveillance]
-        │
-        ▼
-[Dataset: Person, Hard-Hat, No-Hard-Hat]  (Safety PPE)
-        │
-        ▼
-[Ultralytics YOLOv8n Training]  (3.2M params, 50ep, mAP50 0.655)
-        │  best.pt 5.34MB
-        ▼
-[ONNX Exporter]  (opset=12, static 640, simplify=True)
-        │  best.onnx 10.5MB + calibration_images/ 150
-        ▼
-[Edge Deployment]  Jetson Nano / Xavier, Surveillance NVR NPU, Industrial Gateway
-        │  ONNX Runtime, TensorRT, OpenVINO
-        ▼
-[MQTT Broker]  JSON @3fps - Pydantic validated
-        │  Topic: industrial/safety/ppe
-        ▼
-[Cloud]  AWS IoT Core / Azure IoT / Custom Dashboard
-        │  Real-time safety alerts, compliance dashboard
-        ▼
-[Safety Team]  Real-time violation alerts, compliance reports
-```
-
-**Edge Options:**
-- NVIDIA Jetson Nano / Xavier / Orin (TensorRT)
-- Industrial NVR with NPU
-- Factory gateway with ONNX Runtime
-- Drone NPU (DJI Matrice 4TD as one example, but not limited to drone)
-- Any edge device with ONNX support
-
----
-
-## 📁 Repository Structure
-
-```
-├── configs/                # Dataset & model configs
-├── src/                    # Production source code
-│   ├── dataset/            # Downloader, validator, calibration set
-│   ├── training/           # Trainer wrapper
-│   ├── export/             # ONNX exporter + validator
-│   ├── deployment/         # Edge deployment package generator
-│   └── mqtt/               # AWS subscriber, mock publisher, Pydantic models
-├── runs/dji/yolov8n_real_fixed/  # REAL training 50ep mAP50 0.655
-│   ├── weights/best.pt 5.34MB - 3-class Person/Hard-Hat/No-Hard-Hat
-│   ├── results.csv - mAP progression 0→0.655
-│   ├── confusion_matrix.png - real from YOLO
-│   ├── results.png - real 50ep
-│   └── val_batch0_pred.jpg - real inference with boxes
-├── demo/  # 100% REAL - no fake
-│   ├── real_safety_01.jpg - REAL from val_batch0_pred 50ep
-│   ├── real_safety_02.jpg - REAL from val_batch1_pred
-│   ├── real_safety_03.jpg - REAL from val_batch2_pred
-│   ├── confusion_matrix_real.png - from runs
-│   ├── results_real.png - from runs
-│   └── sample_payload.json - MQTT JSON @3fps
-├── notebooks/
-│   └── 01_Industrial_Safety_End_to_End_Pipeline.ipynb
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── SOP.md
-    └── MQTT_SETUP.md
-```
-
----
-
-## 🚀 Quick Start - Industrial Safety
-
-### 1. Setup
-
-```bash
-git clone https://github.com/AliNaderiii/industrial-ppe-safety-yolo-pipeline.git
-cd industrial-ppe-safety-yolo-pipeline
+```powershell
+git clone https://github.com/AliNaderiii/dji-matrice-4td-yolo-pipeline.git
+cd dji-matrice-4td-yolo-pipeline
 py -3.11 -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install ultralytics opencv-python
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 ```
 
-### 2. Dataset
+Install a PyTorch/torchvision build appropriate for your CPU or GPU from [pytorch.org](https://pytorch.org/get-started/locally/), then install this repository's runtime packages:
 
-```bash
-# Hard-hat safety dataset (Roboflow, etc.)
-# Structure: datasets/dji-hardhat/images/train, val, labels
-dir datasets/dji-hardhat/images/val  # 20 val images
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-### 3. Train YOLOv8n (50 epochs, mAP50 0.655)
+For an automated repository-only preflight (compile, tests, and lint), run:
 
-```bash
-yolo train data=datasets/dji-hardhat/dji_matrice.yaml model=yolov8n.pt epochs=50 imgsz=640 batch=8 device=0 project=runs/dji name=yolov8n_4class_REAL50
-# Expected: 50 epochs, mAP50 0.655, best.pt 5.34MB
+```powershell
+.\tools\windows_preflight.ps1
 ```
 
-### 4. Real Inference (100% Real)
+Use `-InstallRuntime` after choosing your PyTorch build, and `-ValidateLocalData` only after creating the local `data/` layout.
 
-```bash
-# Correct syntax: arg=value
-yolo predict model=runs/dji/yolov8n_real_fixed/weights/best.pt source=datasets/dji-hardhat/images/val save=True conf=0.25 imgsz=640 project=runs/dji name=real_demo
+### 2. Prepare and validate data
 
-# Check real outputs
-dir runs/dji/real_demo/
-# val_batch0_pred.jpg with real Hard-Hat boxes
+Create the layout above under `data/`, preserving the class order in `config.yaml`. Check it before any training:
+
+```powershell
+python -m src.validate_data --config config.yaml
 ```
 
-### 5. Export ONNX for Edge (10.5MB)
+The command prints a manifest with split sizes, class-box counts, negative-image counts, and sample IDs. Resolve every validation error rather than bypassing it.
 
-```bash
-yolo export model=runs/dji/yolov8n_real_fixed/weights/best.pt format=onnx opset=12 imgsz=640 simplify=True
-# Output: best.onnx 10.5MB - deploy to Jetson, NVR, gateway
+### 3. Train without consuming test
+
+```powershell
+python -m src.train --config config.yaml
 ```
 
-### 6. MQTT @3fps to Cloud
+This records local provenance in `checkpoints/` and run outputs in `runs/`. The selected `best.pt` is chosen from validation behavior only. Do not inspect or tune against `data/images/test` during this step.
 
-```bash
-docker-compose -f docker/docker-compose.yml up emqx -d
-# Terminal 1: Subscriber (AWS IoT Core)
-python scripts/run_mqtt_test.py --mode subscriber
-# Terminal 2: Publisher @3fps (edge device)
-python scripts/run_mqtt_test.py --mode mock --fps 3 --frames 100
+### 4. Evaluate the held-out test once the checkpoint is fixed
+
+```powershell
+python -m src.evaluate --config config.yaml
 ```
 
----
+Evaluation verifies the recorded training metadata, class contract, current split counts, and checkpoint before writing `reports/test_metrics.json`. It is intentionally a separate action because test results are not a model-selection signal.
 
-## 📊 Benchmark - ONNX Latency (Measured)
+### 5. Build a dashboard from recorded artifacts (optional)
 
-| Model | Format | Size | CPU | GPU GTX 1650 | FPS GPU |
-|-------|--------|------|-----|--------------|---------|
-| YOLOv8n 3-class Safety | PyTorch .pt | 5.34 MB | 45ms | 5.1ms | ~196 |
-| YOLOv8n 3-class Safety | ONNX opset12 | 10.5 MB | 60ms | 8ms | ~125 |
-
-> Edge NPU (Jetson, NVR): estimated ~45ms (22 fps), throttled to 3fps JSON for bandwidth/cloud.
-
----
-
-## 📡 MQTT Integration - Industrial Safety Alerts
-
-```python
-from src.mqtt.aws_subscriber import DJIInferenceSubscriber
-
-subscriber = DJIInferenceSubscriber(
-    endpoint="your-endpoint-ats.iot.us-east-1.amazonaws.com",
-    topic="industrial/safety/ppe",
-    use_tls=True
-)
-subscriber.start()
-# Receives: {timestamp, camera_id, detections: [{class: Hard-Hat/No-Hard-Hat, conf, bbox}], safety_violation: bool}
+```powershell
+python -m src.reporting
 ```
 
-**Payload Example:**
-```json
-{
-  "timestamp": 1710000000000,
-  "camera_id": "factory-cam-01",
-  "frame_id": 123,
-  "detections": [
-    {"class_name": "Hard-Hat", "confidence": 0.98, "bbox": [100, 200, 150, 300]},
-    {"class_name": "No-Hard-Hat", "confidence": 0.95, "bbox": [200, 250, 260, 340]}
-  ],
-  "safety_violation": true,
-  "fps": 3.0
-}
+This creates `reports/experiment_dashboard.png` entirely from `checkpoints/run_metadata.json` and `reports/test_metrics.json`; it does not hard-code headline numbers. Keep the source JSON with any exported figure.
+
+## Expected artifact chain
+
+For every shareable experiment, retain these local artifacts and fill in the [experiment card template](docs/experiment-card-template.md):
+
+1. `checkpoints/resolved_config.json` and `checkpoints/split_manifest.json`;
+2. `checkpoints/run_metadata.json` with code revision, environment, parsed validation history, and checkpoint digest;
+3. `checkpoints/checkpoint.sha256` and the exact selected weight file;
+4. `reports/test_metrics.json` produced from the held-out test split;
+5. any dashboard derived from those JSON files.
+
+No score should be presented without this chain, dataset/license provenance, and a clear statement of the operating domain and limitations.
+
+## Quality checks
+
+Core validation and tests do not need a dataset, PyTorch, or Ultralytics:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m compileall -q src tests
+python -m pytest
+python -m ruff check src tests
 ```
 
----
+On Unix-like systems, equivalent shortcuts are available through `make validate`, `make train`, `make evaluate`, `make report`, `make test`, and `make lint`.
 
-## 📦 Demo Files - 100% Real
+## Scope boundaries
 
-- `real_safety_01.jpg` - REAL val_batch0_pred from 50ep training mAP50 0.655
-- `real_safety_02.jpg` - REAL val_batch1_pred
-- `real_safety_03.jpg` - REAL val_batch2_pred
-- `confusion_matrix_real.png` - Real from `runs/dji/yolov8n_real_fixed/`
-- `results_real.png` - Real 50ep training curves
-- `sample_payload.json` - MQTT JSON @3fps example
+This repository currently provides no implementation or verified evidence for:
 
-**No fake images - all previous AI synthetic removed. 100% YOLO training outputs.**
+- DJI Matrice 4TD, drone payloads, NPU/Jetson/NVR compatibility, or real-time latency/FPS;
+- ONNX/TensorRT/OpenVINO export or performance;
+- MQTT, AWS IoT, Azure IoT, cloud dashboards, or credentials;
+- real-world PPE compliance, surveillance, alerts, or safety outcomes.
 
-**GitHub Topics:** `yolo yolov8 onnx edge-ai mqtt aws-iot computer-vision safety-detection ppe-detection industrial-safety hard-hat-detection`
+Those require their own source code, environment record, hardware evidence, and evaluation protocol before they can be described as supported.
 
----
+## License
 
-## 👨‍💻 Author
-
-**Ali Naderi** - M.Sc. Mechatronics, AI Researcher, Edge AI Engineer
-- Published: Wiley Complexity 2025 (98.16% brain tumor classification)
-- GitHub: [AliNaderiii](https://github.com/AliNaderiii)
-- Location: Dublin, Ireland
-- Specialty: Industrial safety monitoring, PPE detection, edge-to-cloud MQTT
-
-## 📄 License
-
-MIT License - You own all code. Commercial use allowed. No drone-specific branding - generic industrial safety.
+Released under the [MIT License](LICENSE). Dataset licenses and permissions remain the responsibility of the dataset provider and user.

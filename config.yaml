@@ -1,0 +1,31 @@
+# Evaluation-safe local YOLO PPE reference configuration.
+# Supply data locally in data/images/{train,val,test} and data/labels/{train,val,test}.
+dataset:
+  name: industrial_ppe_3class
+  root: data
+  class_names:
+    - person
+    - hard_hat
+    - no_hard_hat
+  splits:
+    train: train
+    validation: val
+    test: test
+  image_size: 640
+
+model:
+  weights: yolov8n.pt
+  pretrained: true
+
+training:
+  run_name: ppe_yolov8n_baseline
+  batch_size: 4
+  epochs: 50
+  early_stopping_patience: 15
+
+runtime:
+  seed: 42
+  deterministic: true
+  num_workers: 0
+  # Use cpu for a portable baseline; cuda:0 only after recording actual hardware.
+  device: auto
